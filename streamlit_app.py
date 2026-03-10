@@ -1,14 +1,13 @@
 import io
+import os
 
 import gr_analytics
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-_sortable_list = components.declare_component(
-    "sortable_driver_list",
-    path="components/sortable_list",
-)
+_COMPONENT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "components", "sortable_list")
+_sortable_list = components.declare_component("sortable_driver_list", path=_COMPONENT_PATH)
 
 TEAM_COLORS = {
     "RBR": "#3671C6",
