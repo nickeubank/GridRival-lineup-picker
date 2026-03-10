@@ -151,7 +151,7 @@ with col_picks:
     st.markdown("---")
     st.markdown("### Optimizer Settings")
 
-    budget = st.number_input("Budget (£M)", min_value=50.0, max_value=200.0, value=100.0, step=0.1)
+    budget = st.number_input("Free Cash (Budget Not Locked In) (£M)", min_value=50.0, max_value=200.0, value=100.0, step=0.1)
     optimize_for = st.selectbox("Optimise for", ["points", "salary_change"])
 
     if st.button("⚡ Find Optimal Lineup"):
