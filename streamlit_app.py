@@ -2,6 +2,7 @@ import io
 
 import pandas as pd
 import streamlit as st
+from streamlit_sortables import sort_items
 
 # 2024 F1 Driver Lineup
 DEFAULT_DRIVERS = [
@@ -48,15 +49,6 @@ st.markdown(
 .main { background-color: #0f0f0f; }
 .stApp { background-color: #0f0f0f; color: #f0f0f0; }
 h1, h2, h3 { color: #e10600; font-family: 'Formula1', sans-serif; }
-.driver-card {
-    background: #1a1a1a;
-    border-radius: 8px;
-    padding: 10px 16px;
-    margin: 4px 0;
-    display: flex;
-    align-items: center;
-    border-left: 4px solid #e10600;
-}
 .stButton > button {
     background-color: #e10600;
     color: white;
@@ -81,76 +73,37 @@ h1, h2, h3 { color: #e10600; font-family: 'Formula1', sans-serif; }
 # Init state
 if "drivers" not in st.session_state:
     st.session_state.drivers = DEFAULT_DRIVERS.copy()
-if "selected" not in st.session_state:
-    st.session_state.selected = None
-
-
-def move_driver(index, direction):
-    drivers = st.session_state.drivers
-    swap_index = index + direction
-    if 0 <= swap_index < len(drivers):
-        drivers[index], drivers[swap_index] = drivers[swap_index], drivers[index]
-        for i, d in enumerate(drivers):
-            d["Position"] = i + 1
-        st.session_state.selected = swap_index
 
 
 def reset_order():
     st.session_state.drivers = DEFAULT_DRIVERS.copy()
-    st.session_state.selected = None
 
 
 # Header
 st.markdown("# 🏎️ F1 Driver Ranker")
-st.markdown("Reorder the drivers using the arrows, then download your ranking as a CSV.")
+st.markdown("Drag and drop drivers to reorder, then download your ranking as a CSV.")
 st.markdown("---")
 
-# Driver list
-drivers = st.session_state.drivers
+# Build display strings — driver name is the unique key used to parse back
+items = [f"P{d['Position']}  {d['Driver']}  —  {d['Team']}" for d in st.session_state.drivers]
+name_to_driver = {d["Driver"]: d for d in DEFAULT_DRIVERS}
 
-for i, driver in enumerate(drivers):
-    team = driver["Team"]
-    color = TEAM_COLORS.get(team, "#ffffff")
-    is_selected = st.session_state.selected == i
+sorted_items = sort_items(items, direction="vertical")
 
-    bg = "#2a2a2a" if is_selected else "#1a1a1a"
-    border = color
+# Parse driver name back out and update session state if order changed
+def parse_name(item_str):
+    # format: "P1  Max Verstappen  —  Red Bull Racing"
+    return item_str.split("  —  ")[0].split("  ", 1)[1]
 
-    col_pos, col_info, col_up, col_down = st.columns([0.8, 5, 0.7, 0.7])
+sorted_names = [parse_name(s) for s in sorted_items]
+current_names = [d["Driver"] for d in st.session_state.drivers]
 
-    with col_pos:
-        st.markdown(
-            f"<div style='background:{bg};border-left:4px solid {border};border-radius:6px;"
-            f"padding:10px 8px;text-align:center;font-size:1.2em;font-weight:bold;color:#e10600;'>"
-            f"P{driver['Position']}</div>",
-            unsafe_allow_html=True,
-        )
-
-    with col_info:
-        st.markdown(
-            f"<div style='background:{bg};border-left:4px solid {border};border-radius:6px;"
-            f"padding:10px 14px;'>"
-            f"<span style='font-weight:bold;font-size:1em;color:#f0f0f0;'>{driver['Driver']}</span>"
-            f"<span style='color:{color};font-size:0.85em;margin-left:10px;'>{team}</span>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-    with col_up:
-        if i > 0:
-            if st.button("▲", key=f"up_{i}"):
-                move_driver(i, -1)
-                st.rerun()
-        else:
-            st.markdown("<div style='height:44px'></div>", unsafe_allow_html=True)
-
-    with col_down:
-        if i < len(drivers) - 1:
-            if st.button("▼", key=f"down_{i}"):
-                move_driver(i, 1)
-                st.rerun()
-        else:
-            st.markdown("<div style='height:44px'></div>", unsafe_allow_html=True)
+if sorted_names != current_names:
+    st.session_state.drivers = [
+        {**name_to_driver[name], "Position": i + 1}
+        for i, name in enumerate(sorted_names)
+    ]
+    st.rerun()
 
 st.markdown("---")
 
@@ -166,11 +119,10 @@ with col_dl:
     df = pd.DataFrame(st.session_state.drivers)
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
-    csv_data = csv_buffer.getvalue()
 
     st.download_button(
         label="⬇️ Download Ranking as CSV",
-        data=csv_data,
+        data=csv_buffer.getvalue(),
         file_name="f1_driver_ranking.csv",
         mime="text/csv",
     )
