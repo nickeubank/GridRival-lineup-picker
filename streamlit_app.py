@@ -3,7 +3,12 @@ import io
 import gr_analytics
 import pandas as pd
 import streamlit as st
-from streamlit_sortables import sort_items
+import streamlit.components.v1 as components
+
+_sortable_list = components.declare_component(
+    "sortable_driver_list",
+    path="components/sortable_list",
+)
 
 TEAM_COLORS = {
     "RBR": "#3671C6",
@@ -104,23 +109,17 @@ col_rank, col_picks = st.columns([3, 2])
 with col_rank:
     st.markdown("### Predicted Race Finishing Order")
 
-    items = [f"P{d['Position']}  {d['Driver']}  —  {d['Team']}" for d in st.session_state.drivers]
-    name_to_driver = {d["Driver"]: d for d in st.session_state.drivers}
-
-    sorted_items = sort_items(items, direction="vertical")
-
-    def parse_name(item_str):
-        return item_str.split("  —  ")[0].split("  ", 1)[1]
-
-    sorted_names = [parse_name(s) for s in sorted_items]
-    current_names = [d["Driver"] for d in st.session_state.drivers]
-
-    if sorted_names != current_names:
-        st.session_state.drivers = [
-            {**name_to_driver[name], "Position": i + 1}
-            for i, name in enumerate(sorted_names)
-        ]
-        st.rerun()
+    result = _sortable_list(
+        drivers=st.session_state.drivers,
+        teamColors=TEAM_COLORS,
+        key="race_order",
+        default=None,
+    )
+    if result is not None:
+        result = [dict(d) for d in result]
+        if [d["Driver"] for d in result] != [d["Driver"] for d in st.session_state.drivers]:
+            st.session_state.drivers = result
+            st.rerun()
 
     st.markdown("")
     col_reset, col_dl = st.columns([1, 2])
