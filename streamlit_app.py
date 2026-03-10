@@ -1,45 +1,35 @@
 import io
 
+import gr_analytics
 import pandas as pd
 import streamlit as st
 from streamlit_sortables import sort_items
 
-# 2024 F1 Driver Lineup
-DEFAULT_DRIVERS = [
-    {"Position": 1, "Driver": "Max Verstappen", "Team": "Red Bull Racing"},
-    {"Position": 2, "Driver": "Lando Norris", "Team": "McLaren"},
-    {"Position": 3, "Driver": "Charles Leclerc", "Team": "Ferrari"},
-    {"Position": 4, "Driver": "Oscar Piastri", "Team": "McLaren"},
-    {"Position": 5, "Driver": "Carlos Sainz", "Team": "Ferrari"},
-    {"Position": 6, "Driver": "George Russell", "Team": "Mercedes"},
-    {"Position": 7, "Driver": "Lewis Hamilton", "Team": "Mercedes"},
-    {"Position": 8, "Driver": "Sergio Perez", "Team": "Red Bull Racing"},
-    {"Position": 9, "Driver": "Fernando Alonso", "Team": "Aston Martin"},
-    {"Position": 10, "Driver": "Lance Stroll", "Team": "Aston Martin"},
-    {"Position": 11, "Driver": "Esteban Ocon", "Team": "Alpine"},
-    {"Position": 12, "Driver": "Pierre Gasly", "Team": "Alpine"},
-    {"Position": 13, "Driver": "Nico Hulkenberg", "Team": "Haas"},
-    {"Position": 14, "Driver": "Kevin Magnussen", "Team": "Haas"},
-    {"Position": 15, "Driver": "Valtteri Bottas", "Team": "Sauber"},
-    {"Position": 16, "Driver": "Guanyu Zhou", "Team": "Sauber"},
-    {"Position": 17, "Driver": "Alexander Albon", "Team": "Williams"},
-    {"Position": 18, "Driver": "Franco Colapinto", "Team": "Williams"},
-    {"Position": 19, "Driver": "Yuki Tsunoda", "Team": "RB"},
-    {"Position": 20, "Driver": "Liam Lawson", "Team": "RB"},
-]
-
 TEAM_COLORS = {
-    "Red Bull Racing": "#3671C6",
-    "McLaren": "#FF8000",
-    "Ferrari": "#E8002D",
-    "Mercedes": "#27F4D2",
-    "Aston Martin": "#229971",
-    "Alpine": "#FF87BC",
-    "Haas": "#B6BABD",
-    "Sauber": "#52E252",
-    "Williams": "#64C4FF",
-    "RB": "#6692FF",
+    "RBR": "#3671C6",
+    "MCL": "#FF8000",
+    "FER": "#E8002D",
+    "MER": "#27F4D2",
+    "AMR": "#229971",
+    "ALP": "#FF87BC",
+    "HAS": "#B6BABD",
+    "AUD": "#52E252",
+    "WIL": "#64C4FF",
+    "RBS": "#6692FF",
+    "CAD": "#CC0000",
 }
+
+
+def load_default_drivers():
+    df = gr_analytics.driver_data()
+    latest_round = df["round"].max()
+    df = df[(df["round"] == latest_round) & (df["type"] == "driver")]
+    df = df.sort_values("eight_race_average").reset_index(drop=True)
+    return [
+        {"Position": i + 1, "Driver": row["driver_name"], "Team": row["driver_team"]}
+        for i, (_, row) in enumerate(df.iterrows())
+    ]
+
 
 st.set_page_config(page_title="F1 Driver Ranker", page_icon="🏎️", layout="centered")
 
@@ -72,11 +62,11 @@ h1, h2, h3 { color: #e10600; font-family: 'Formula1', sans-serif; }
 
 # Init state
 if "drivers" not in st.session_state:
-    st.session_state.drivers = DEFAULT_DRIVERS.copy()
+    st.session_state.drivers = load_default_drivers()
 
 
 def reset_order():
-    st.session_state.drivers = DEFAULT_DRIVERS.copy()
+    st.session_state.drivers = load_default_drivers()
 
 
 # Header
@@ -86,14 +76,15 @@ st.markdown("---")
 
 # Build display strings — driver name is the unique key used to parse back
 items = [f"P{d['Position']}  {d['Driver']}  —  {d['Team']}" for d in st.session_state.drivers]
-name_to_driver = {d["Driver"]: d for d in DEFAULT_DRIVERS}
+name_to_driver = {d["Driver"]: d for d in st.session_state.drivers}
 
 sorted_items = sort_items(items, direction="vertical")
 
-# Parse driver name back out and update session state if order changed
+
 def parse_name(item_str):
-    # format: "P1  Max Verstappen  —  Red Bull Racing"
+    # format: "P1  M. Verstappen  —  RBR"
     return item_str.split("  —  ")[0].split("  ", 1)[1]
+
 
 sorted_names = [parse_name(s) for s in sorted_items]
 current_names = [d["Driver"] for d in st.session_state.drivers]
