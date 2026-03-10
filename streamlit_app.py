@@ -161,24 +161,7 @@ with col_picks:
         st.warning("Maximum 5 drivers allowed.")
         locked_driver_labels = locked_driver_labels[:5]
 
-    st.markdown("**Constructor**")
-    locked_constructors = []
-    for team_abbr in team_abbrs:
-        color = TEAM_COLORS.get(team_abbr, "#555")
-        col_bar, col_radio = st.columns([0.04, 0.96])
-        with col_bar:
-            st.markdown(
-                f"<div style='background:{color};width:5px;height:26px;"
-                f"border-radius:3px;margin-top:4px;'></div>",
-                unsafe_allow_html=True,
-            )
-        with col_radio:
-            if st.checkbox(team_abbr, key=f"lock_team_{team_abbr}"):
-                locked_constructors.append(team_abbr)
-
-    if len(locked_constructors) > 1:
-        st.warning("Only 1 constructor allowed — using first selection.")
-    locked_constructor = locked_constructors[0] if locked_constructors else "(none)"
+    locked_constructor = st.selectbox("Constructor", options=["(none)"] + team_abbrs)
 
     st.markdown("---")
     st.markdown("### Optimizer Settings")
