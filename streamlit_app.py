@@ -141,24 +141,11 @@ with col_picks:
     st.markdown("### Locked-In Picks")
     st.markdown("Drivers and constructor already on your team.")
 
-    st.markdown("**Drivers** (up to 5)")
-    locked_driver_labels = []
-    for label, abbr in driver_label_to_abbr.items():
-        color = TEAM_COLORS.get(abbr_to_team.get(abbr, ""), "#555")
-        col_bar, col_check = st.columns([0.04, 0.96])
-        with col_bar:
-            st.markdown(
-                f"<div style='background:{color};width:5px;height:26px;"
-                f"border-radius:3px;margin-top:4px;'></div>",
-                unsafe_allow_html=True,
-            )
-        with col_check:
-            if st.checkbox(label, key=f"lock_{abbr}"):
-                locked_driver_labels.append(label)
-
-    if len(locked_driver_labels) > 5:
-        st.warning("Maximum 5 drivers allowed.")
-        locked_driver_labels = locked_driver_labels[:5]
+    locked_driver_labels = st.multiselect(
+        "Drivers (up to 5)",
+        options=list(driver_label_to_abbr.keys()),
+        max_selections=5,
+    )
 
     locked_constructor = st.selectbox("Constructor", options=["(none)"] + team_abbrs)
 
