@@ -81,15 +81,15 @@ def reset_order():
 
 # Build locked-in picker options from driver data
 dd = get_driver_data()
-driver_rows = dd[dd["type"] == "driver"]
-team_rows = dd[dd["type"] == "team"]
+driver_rows = dd[dd["type"] == "driver"].sort_values("eight_race_average").reset_index(drop=True)
+team_rows = dd[dd["type"] == "team"].sort_values("driver_name").reset_index(drop=True)
 
-# Maps: display label -> abbreviation
 driver_label_to_abbr = {
     f"{r['driver_name']} ({r['driver_team']})": r["driver_abbr"]
     for _, r in driver_rows.iterrows()
 }
-team_abbrs = sorted(team_rows["driver_name"].tolist())
+abbr_to_team = {r["driver_abbr"]: r["driver_team"] for _, r in driver_rows.iterrows()}
+team_abbrs = team_rows["driver_name"].tolist()
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
@@ -143,16 +143,43 @@ with col_picks:
     st.markdown("### Locked-In Picks")
     st.markdown("Drivers and constructor already on your team.")
 
-    locked_driver_labels = st.multiselect(
-        "Drivers (up to 5)",
-        options=list(driver_label_to_abbr.keys()),
-        max_selections=5,
-    )
+    st.markdown("**Drivers** (up to 5)")
+    locked_driver_labels = []
+    for label, abbr in driver_label_to_abbr.items():
+        color = TEAM_COLORS.get(abbr_to_team.get(abbr, ""), "#555")
+        col_bar, col_check = st.columns([0.04, 0.96])
+        with col_bar:
+            st.markdown(
+                f"<div style='background:{color};width:5px;height:26px;"
+                f"border-radius:3px;margin-top:4px;'></div>",
+                unsafe_allow_html=True,
+            )
+        with col_check:
+            if st.checkbox(label, key=f"lock_{abbr}"):
+                locked_driver_labels.append(label)
 
-    locked_constructor = st.selectbox(
-        "Constructor",
-        options=["(none)"] + team_abbrs,
-    )
+    if len(locked_driver_labels) > 5:
+        st.warning("Maximum 5 drivers allowed.")
+        locked_driver_labels = locked_driver_labels[:5]
+
+    st.markdown("**Constructor**")
+    locked_constructors = []
+    for team_abbr in team_abbrs:
+        color = TEAM_COLORS.get(team_abbr, "#555")
+        col_bar, col_radio = st.columns([0.04, 0.96])
+        with col_bar:
+            st.markdown(
+                f"<div style='background:{color};width:5px;height:26px;"
+                f"border-radius:3px;margin-top:4px;'></div>",
+                unsafe_allow_html=True,
+            )
+        with col_radio:
+            if st.checkbox(team_abbr, key=f"lock_team_{team_abbr}"):
+                locked_constructors.append(team_abbr)
+
+    if len(locked_constructors) > 1:
+        st.warning("Only 1 constructor allowed — using first selection.")
+    locked_constructor = locked_constructors[0] if locked_constructors else "(none)"
 
     st.markdown("---")
     st.markdown("### Optimizer Settings")
