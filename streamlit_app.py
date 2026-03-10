@@ -1,13 +1,9 @@
 import io
-import os
 
 import gr_analytics
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
-
-_COMPONENT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "components", "sortable_list")
-_sortable_list = components.declare_component("sortable_driver_list", path=_COMPONENT_PATH)
+from streamlit_sortables import sort_items
 
 TEAM_COLORS = {
     "RBR": "#3671C6",
@@ -108,17 +104,20 @@ col_rank, col_picks = st.columns([3, 2])
 with col_rank:
     st.markdown("### Predicted Race Finishing Order")
 
-    result = _sortable_list(
-        drivers=st.session_state.drivers,
-        teamColors=TEAM_COLORS,
-        key="race_order",
-        default=None,
-    )
-    if result is not None:
-        result = [dict(d) for d in result]
-        if [d["Driver"] for d in result] != [d["Driver"] for d in st.session_state.drivers]:
-            st.session_state.drivers = result
-            st.rerun()
+    items = [f"P{d['Position']}  {d['Driver']}  —  {d['Team']}" for d in st.session_state.drivers]
+    name_to_driver = {d["Driver"]: d for d in st.session_state.drivers}
+
+    sorted_items = sort_items(items, direction="vertical")
+
+    sorted_names = [s.split("  —  ")[0].split("  ", 1)[1] for s in sorted_items]
+    current_names = [d["Driver"] for d in st.session_state.drivers]
+
+    if sorted_names != current_names:
+        st.session_state.drivers = [
+            {**name_to_driver[name], "Position": i + 1}
+            for i, name in enumerate(sorted_names)
+        ]
+        st.rerun()
 
     st.markdown("")
     col_reset, col_dl = st.columns([1, 2])
